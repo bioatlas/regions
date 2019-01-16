@@ -1,30 +1,26 @@
 language: groovy
 jdk:
-- oraclejdk7
+- oraclejdk8
 sudo: false
-branches:
-  only:
-  - master
-  - mdba
-
-before_install:
-- wget -q https://raw.githubusercontent.com/AtlasOfLivingAustralia/travis-build-configuration/master/ala_common.sh
-- chmod +x ala_common.sh
-- source ./ala_common.sh
-
-- ala_travis_grails_setup_env
-
+before_cache:
+- rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+- rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+cache:
+  directories:
+  - "$HOME/.m2"
+  - "$HOME/.gradle/caches/"
+  - "$HOME/.gradle/wrapper/"
 script:
-- ala_travis_grails_build
-
-# Build versions of regions with a different app.name.  This is so they can be deployed to the same server without config directories overlapping.
-- sed -i 's/app.name.*/app.name=regions-mdba/' ./application.properties
-- ala_travis_grails_build
-
-- sed -i 's/app.name.*/app.name=regions-ger/' ./application.properties
-- ala_travis_grails_build
-
-env:
-  global:
-  - secure: RIhAEjfKDzlXrqrTAHgC7wg+FODTmEq2AyWVzYYt2P46YHHdClBbVf5o1MhfhbQfn2E7yTSOXnZaP4KGhhotMHsqSxg9Ys42Nq4KXp/CXYfVPbw0MneKIv8Y4pgkAOhz1wBcDSTSHgO9oijfANAnI37V391tqvSrL9NiJfbLZLA=
-  - secure: zAD+0aRjyOPpUWcY0g8Dl0Gy74mZd5JbCGpfz9DbkN1wZhLisrG5ooHkNVSxaVR/DJChLHBL61cpj5TNu5BZAyY850wbHyCHfJJF3cbqUJu8dBtvGLUJPEXdsPyHUxtNQEgk5DiNbeuUiGxwzkDcpiIRYGWcY3GSWF31SGnJyhU=
+- "./gradlew clean && ./gradlew war"
+deploy:
+  provider: releases
+  api_key:
+    secure: tcHV/LXVjwz0SFHxzv/9OfCCEsGZw8nn99xXIR65WZ3YHlDp5dHKPS3nPhtwIjwfZNDlG4epyFPxMOS9vCNKLlxztWVt8aqtoAVpoDMdoHRE+B8wWG8K7TfjTkwYWT1auEasB9ICQ0qc7j36+io0gMdvc1zaZZWJvwZEBpg3dYWxyVddV6uJQT/dE5nhrO1u+m9q2rP/jud9esbAo2NsNVGszrN/A4vBkQoBjm+LqinS7rBjm2sFIATPOfM7LpF7FrdsAEi86SeDdskHqiofAN1hKdiBDf819Ln2WpqCKcHzqTgt2+HibYXWkUuhTWOIDXqogryn3QmXkX7KqDdXqtyz3V+x+1rOHGnbG6ZTD1SD7K3gUxAiZpSe7+EyzqSvObVOh7W+YyB7LmaDcpCnJCcD+drSR6TCQzUNCUoPjrEigPil3XPBMD+daJ8An6MLcTufCdzHrbdSMarkZ8pgJF0kodZ3hg8lok2faQJl3ir4P5aiZD5V/CvN/Wu9usZW1hP4omf8Dt1KmL6ixWkGsRU5hxIMo5SfXRNd2p226n4X3SmI2OSpbARAXNKSgB/FYxVP9iHHHdVwk8G5TDeWAhWehvopr0UFR3zj/gntFQo0zUSmf3iwWjyF32ESj+NJhDkdlrK5ZUhB/obyPf5fQS+NP9gAXIrQtBXZyLHpT7Y=
+  file_glob: true
+  file: build/libs/regions-*.war
+  skip_cleanup: true
+  overwrite: true
+  on:
+    repo: bioatlas/regions
+    all-branches: true 
+    tags: true

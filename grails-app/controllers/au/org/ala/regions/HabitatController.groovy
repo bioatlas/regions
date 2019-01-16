@@ -1,14 +1,11 @@
 package au.org.ala.regions
 
-import groovy.json.JsonSlurper
 import groovyx.net.http.*
 import static groovyx.net.http.ContentType.*
 import static groovyx.net.http.Method.*
 
 
 class HabitatController {
-
-    def grailsApplication
 
     def metadataService
 
@@ -17,7 +14,7 @@ class HabitatController {
     }
 
     def findNode(node, habitatID){
-        println("finding habitat ID: " + habitatID)
+        log.debug("finding habitat ID: " + habitatID)
         def nodeToReturn = null
         if(node.containsKey(habitatID)){
             nodeToReturn = node.get(habitatID)
@@ -49,9 +46,7 @@ class HabitatController {
 
         //find the node
         def node = findNode(config.tree, habitatID)
-
         def flattenValues = flattenNode(node)
-//
         def fqParam = "("
         def title = ""
 
@@ -71,8 +66,8 @@ class HabitatController {
         def http = new HTTPBuilder( grailsApplication.config.biocacheService.baseURL + '/webportal/params' )
         http.request( POST, URLENC ) { req ->
             body = [
-                q: fqParam,
-                title: title
+                    q: fqParam,
+                    title: title
             ]
             response.success = { resp, json ->
                 def qid = json.keySet().first()
@@ -80,7 +75,7 @@ class HabitatController {
             }
 
             response.failure = { resp, reader ->
-                 [response:resp, reader:reader]
+                [response:resp, reader:reader]
             }
         }
     }

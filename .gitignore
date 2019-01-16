@@ -45,3 +45,7 @@
 
 *.log
 out/
+
+build/
+.gradle/
+.asscache

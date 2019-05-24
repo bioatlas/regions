@@ -13,6 +13,8 @@
  *  rights and limitations under the License.
  */
 
+//= require Leaflet-gridlayer-google-mutant/Leaflet.GoogleMutant.js
+
 var regionWidget;
 
 $(function () {
@@ -31,7 +33,7 @@ $(function () {
             offText: "MDBA",
             offColor: "success",
             onSwitchChange: function (event, state) {
-                console.log("switch toggled", state);
+                //console.log("switch toggled", state);
                 regionWidget.getCurrentState().showHubData = !state;
                 refreshSpeciesGroup();
                 taxonomyChart.load()
@@ -113,7 +115,7 @@ var region = {
                 if (pos < 0) {
                     params.push(v);
                 } else {
-                    params.push('&fq=' + v.substring(pos + 1))
+                    params.push('fq=' + v.substring(pos + 1))
                 }
             });
         }
@@ -130,6 +132,10 @@ var region = {
             params.push("fq=" + timeFacet);
         }
 
+        // remove any empty elements
+        params = jQuery.grep(params, function(n){ return (n); });
+
+        //console.log("params", params);
         return params;
     },
 
@@ -255,7 +261,7 @@ var RegionWidget = function (config) {
         });
 
         // Initialize info message
-        //$('#timeControlsInfo').popover();
+        $('#timeControlsInfo').popover({trigger:'hover', container: 'body', placement: 'top'});
     };
 
     /**
@@ -561,12 +567,11 @@ var RegionTimeControls = function (config) {
                 updateTimeRange(ui.values);
             }
         })
-
-            .slider("pips", {
-                rest: "pip",
-                step: 10
-            })
-            .slider("float", {});
+        .slider("pips", {
+            rest: "pip",
+            step: 10
+        })
+        .slider("float", {});
 
         initializeTimeControlsEvents();
     };
@@ -735,32 +740,48 @@ var RegionMap = function (config) {
     var enableRegionOverlay = true;
 
     var init = function (config) {
-        initialBounds = new google.maps.LatLngBounds(
-            new google.maps.LatLng(config.bbox.sw.lat, config.bbox.sw.lng),
-            new google.maps.LatLng(config.bbox.ne.lat, config.bbox.ne.lng));
+
+        initialBounds = L.latLngBounds(
+            L.latLng(config.bbox.sw.lat, config.bbox.sw.lng),
+            L.latLng(config.bbox.ne.lat, config.bbox.ne.lng));
 
         useReflectService = config.useReflectService;
         enableRegionOverlay = config.enableRegionOverlay;
 
-        var myOptions = {
-            scrollwheel: false,
-            streetViewControl: false,
-            mapTypeControl: true,
-            mapTypeControlOptions: {
-                style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
-            },
-            scaleControl: true,
-            scaleControlOptions: {
-                position: google.maps.ControlPosition.LEFT_BOTTOM
-            },
-            panControl: false,
-            draggableCursor: 'crosshair',
-            mapTypeId: google.maps.MapTypeId.TERRAIN
-        };
+        // create leaflet map object
+        map = L.map(document.getElementById("region-map"), {
+            scrollWheelZoom: false,
+        });
 
-        map = new google.maps.Map(document.getElementById("region-map"), myOptions);
+        // TODO pull out into config, so it can be changed without redeploying app
+        var defaultBaseLayer = L.tileLayer("https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png", {
+            attribution:  "Map data &copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>, imagery &copy; <a href='https://cartodb.com/attributions'>CartoDB</a>",
+            subdomains: "abcd"
+        });
+
+        if (REGION_CONFIG.useGoogleApi) {
+            // only show layer controls when Google API key is available
+            var baseLayers = {
+                Minimal: defaultBaseLayer,
+                Road: L.gridLayer.googleMutant({ type: 'roadmap' }),
+                Terrain: L.gridLayer.googleMutant({ type: 'terrain' }),
+                Satellite: L.gridLayer.googleMutant({ type: 'hybrid' })
+            };
+            map.layerControl = L.control.layers(baseLayers).addTo(map);
+        }
+
+        map.addLayer(defaultBaseLayer);
         map.fitBounds(initialBounds);
-        map.enableKeyDragZoom();
+
+        map.on('baselayerchange', function() {
+            // prevent baselayers covering/hiding overlay layers when switching baselayers
+            if (map.hasLayer(overlays[0])) {
+                overlays[0].bringToFront();
+            }
+            if (map.hasLayer(overlays[1])) {
+                overlays[1].bringToFront();
+            }
+        });
 
         initializeOpacityControls();
 
@@ -773,7 +794,7 @@ var RegionMap = function (config) {
          | Hack the viewport if we don't have good bbox data
          \*******************************************************/
         // fall-back attempt at bounding box if all of Oz
-        if (initialBounds.equals(new google.maps.LatLngBounds(
+        if (false && initialBounds.equals(new google.maps.LatLngBounds(
                 new google.maps.LatLng(-42, 113),
                 new google.maps.LatLng(-14, 153)))) {
             $.ajax({
@@ -831,10 +852,16 @@ var RegionMap = function (config) {
         // layer toggling
         $("#toggleOccurrences").click(function () {
             $('#maploading').fadeOut("fast");
+            (this.checked)
+                ? $('#occurrencesOpacity').slider('enable')
+                : $('#occurrencesOpacity').slider('disable');
             toggleOverlay(1, this.checked);
         });
         $("#toggleRegion").click(function () {
             $('#maploading').fadeOut("fast");
+            (this.checked)
+                ? $('#regionOpacity').slider('enable')
+                : $('#regionOpacity').slider('disable');
             toggleOverlay(0, this.checked);
         });
     };
@@ -853,7 +880,13 @@ var RegionMap = function (config) {
      * @param show true to show; false to hide
      */
     var toggleOverlay = function (n, show) {
-        map.overlayMapTypes.setAt(n, show ? overlays[n] : null);
+        //map.overlayMapTypes.setAt(n, show ? overlays[n] : null);
+        if (show) {
+            map.addLayer(overlays[n]);
+            overlays[n].bringToFront();
+        } else {
+            map.removeLayer(overlays[n]);
+        }
     };
 
     /**
@@ -881,28 +914,46 @@ var RegionMap = function (config) {
             var currentState = regionWidget.getCurrentState();
             var urls = regionWidget.getUrls();
 
+            if (map.hasLayer(overlays[0])) {
+                map.removeLayer(overlays[0]);
+            }
+
             if (currentState.q.indexOf("%3A*") === currentState.q.length - 4) {
-                /* this draws the region as a WMS layer */
-                var layerParams = [
-                    "FORMAT=" + overlayFormat,
-                    "LAYERS=ALA:" + currentState.regionLayerName,
-                    "STYLES=polygon"
-                ];
-                overlays[0] = new WMSTileLayer(currentState.regionLayerName, urls.spatialCacheUrl, layerParams,
-                    wmsTileLoaded, getRegionOpacity());
+                // q contains wildcard field value, e.g. `cl22%3A*` (cl22:*)
+                var layerParams = {
+                    FORMAT: overlayFormat,
+                    LAYERS: "ALA:" + currentState.regionLayerName,
+                    STYLES: "polygon",
+                    TRANSPARENT: true,
+                    opacity: getRegionOpacity()
+                };
+                overlays[0] = L.tileLayer.wms(urls.spatialCacheUrl, layerParams);
                 $('#maploading').fadeIn("fast");
-                map.overlayMapTypes.setAt(0, overlays[0]);
+                overlays[0].on('add', function (event) {
+                    overlays[0].bringToFront();
+                    if (overlays[1]) overlays[1].bringToFront(); // so records are always on top
+                    $('#maploading').fadeOut("fast");
+                });
+                map.addLayer(overlays[0]);
             } else {
-                var params = [
-                    "FORMAT=" + overlayFormat,
-                    "LAYERS=ALA:Objects",
-                    "viewparams=s:" + currentState.regionPid,
-                    "STYLES=polygon"
-                ];
-                overlays[0] = new WMSTileLayer(currentState.regionLayerName, urls.spatialWmsUrl, params,
-                    wmsTileLoaded, getRegionOpacity());
+                // q contains an actual field value, e.g. `cl22%3A%22Queensland%22` (cl22:"Queensland")
+                var params = {
+                    FORMAT: overlayFormat,
+                    LAYERS: "ALA:Objects",
+                    viewparams: "s:" + currentState.regionPid,
+                    STYLES: "polygon",
+                    TRANSPARENT: true,
+                    opacity: getRegionOpacity()
+                };
+                overlays[0] = L.tileLayer.wms(urls.spatialWmsUrl, params);
                 $('#maploading').fadeIn("fast");
-                map.overlayMapTypes.setAt(0, overlays[0]);
+
+                overlays[0].on('add', function (event) {
+                    overlays[0].bringToFront();
+                    if (overlays[1]) overlays[1].bringToFront(); // so records are always on top
+                    $('#maploading').fadeOut("fast");
+                });
+                map.addLayer(overlays[0]);
             }
         }
     };
@@ -921,20 +972,22 @@ var RegionMap = function (config) {
             return;
         }
 
-        var customParams = [
-            "FORMAT=" + overlayFormat,
-            "colourby=3368652",
-            "symsize=4"
-        ];
-
-        //Add query string params to custom params
-        var query = region.buildBiocacheQuery(customParams, 0);
-
-        overlays[1] = new WMSTileLayer("Occurrences",
-            urlConcat(urls.biocacheServiceUrl, "occurrences/wms?"), query, wmsTileLoaded, getOccurrenceOpacity());
-
+        var queryParams = [];
+        var wmsParams = {
+            format: overlayFormat,
+            opacity: getOccurrenceOpacity(),
+            symsize: 4,
+            colourby: 3368652
+        };
+        var query = region.buildBiocacheQuery(queryParams, 0).join("&");
+        overlays[1] = L.tileLayer.wms(urlConcat(urls.biocacheServiceUrl, "occurrences/wms?") + query, wmsParams);
         $('#maploading').fadeIn("fast");
-        map.overlayMapTypes.setAt(1, $('#toggleOccurrences').is(':checked') ? overlays[1] : null);
+
+        overlays[1].on('add', function (event) {
+            overlays[1].bringToFront();
+            $('#maploading').fadeOut("fast");
+        });
+        map.addLayer(overlays[1]);
     };
 
     var drawRecordsOverlay2 = function () {
@@ -942,26 +995,40 @@ var RegionMap = function (config) {
 
         var url = urls.biocacheServiceUrl + "/mapping/wms/reflect?";
 
-        var prms = [
-            "FORMAT=" + overlayFormat,
-            "LAYERS=ALA%3Aoccurrences",
-            "STYLES=",
-            "BGCOLOR=0xFFFFFF",
-            'CQL_FILTER=',
-            "symsize=3",
-            "ENV=color:FF0000;name:circle;size:3;opacity:" + getOccurrenceOpacity(),
-            "EXCEPTIONS=application-vnd.ogc.se_inimage"
-        ];
-        var query = region.buildBiocacheQuery(prms, 0);
+        if (overlays[1]) {
+            // redrawing records, so remove previous records layer
+            map.removeLayer(overlays[1]);
+        }
 
-        overlays[1] = new WMSTileLayer("Occurrences (by reflect service)", url, query, wmsTileLoaded, 0.8);
+        var queryParams = [];
+        var wmsParams = {
+            format: overlayFormat,
+            layers: "ALA:occurrences",
+            styles: "",
+            bgcolor: "0xFFFFFF",
+            cql_filter: "",
+            symsize: 3,
+            env: "color:FF0000;name:circle;size:3;opacity:" + getOccurrenceOpacity(),
+            exceptions: "application-vnd.ogc.se_inimage",
+            outline: false,
+            opacity: getOccurrenceOpacity(),
+            uppercase: true
+        };
+        var query = region.buildBiocacheQuery(queryParams, 0).join("&");
+        overlays[1] = L.tileLayer.wms(url + query, wmsParams);
 
         //do not fade in $('#maploading') when playing the time slider
         if (!regionWidget.getTimeControls() || !regionWidget.getTimeControls().isRunning
             || !regionWidget.getTimeControls().isRunning()) {
             $('#maploading').fadeIn("fast")
         }
-        map.overlayMapTypes.setAt(1, $('#toggleOccurrences').is(':checked') ? overlays[1] : null);
+
+        overlays[1].on('add', function (event) {
+            overlays[1].bringToFront();
+            $('#maploading').fadeOut("fast");
+        });
+
+        map.addLayer(overlays[1]);
     };
 
     var _public = {

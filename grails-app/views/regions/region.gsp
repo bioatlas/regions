@@ -26,6 +26,7 @@
                 spatialServiceUrl: "${grailsApplication.config.layersService.baseURL}/",
             },
             username: '${rg.loggedInUsername()}',
+            useGoogleApi: '${(grailsApplication.config.getProperty('google.apikey')) ? "true": ""}',
             q: '${region.q}'
         <g:if test="${enableQueryContext}">
             ,qc: "${grailsApplication.config.biocache.queryContext}"
@@ -38,15 +39,15 @@
         ,bbox: {
             sw: {
                 lat: ${region.bbox?.minLat},
-                    lng: ${region.bbox?.minLng}
-        },
-        ne: {
-            lat: ${region.bbox?.maxLat},
-                        lng: ${region.bbox?.maxLng}
+                lng: ${region.bbox?.minLng}
+            },
+            ne: {
+                lat: ${region.bbox?.maxLat},
+                lng: ${region.bbox?.maxLng}
+            }
         }
-    }
-    ,useReflectService: ${useReflect}
-        ,enableRegionOverlay: ${enableRegionOverlay != null ? enableRegionOverlay : 'true'}
+        ,useReflectService: ${useReflect}
+            ,enableRegionOverlay: ${enableRegionOverlay != null ? enableRegionOverlay : 'true'}
         };
     </asset:script>
 
@@ -57,8 +58,10 @@
     <script src="https://maps.google.com/maps/api/js?key=${grailsApplication.config.google.apikey}"></script>
     <script src="https://www.gstatic.com/charts/loader.js"></script>
 
-    <asset:javascript src="application"/>
+    <asset:stylesheet src="leaflet/leaflet"/>
     <asset:stylesheet src="application"/>
+    <asset:javascript src="regions/application"/>
+    <asset:javascript src="leaflet/leaflet"/>
     <asset:javascript src="regions_app" asset-defer="true"/>
     <asset:javascript src="region_page" asset-defer="true"/>
 </head>

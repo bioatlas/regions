@@ -19,7 +19,7 @@ class MetadataServiceSpec extends Specification {
 
     void "test retrieveEmblemsMetadata method"() {
         given:
-        String regionName = "New South Wales"
+        String regionName = "NEW SOUTH WALES"
         when:
         List result = metadataService.getEmblemsMetadata(regionName)
         then:
@@ -29,9 +29,9 @@ class MetadataServiceSpec extends Specification {
 
     void "test species groups retrieval"() {
         given:
-        String regionName = "New South Wales"
+        String regionName = "NEW SOUTH WALES"
         String regionType = "states"
-        String regionFid = "cl22"
+        String regionFid = "cl10925"
         String regionPid = "1"
 
         when:
@@ -47,7 +47,7 @@ class MetadataServiceSpec extends Specification {
         given:
         String regionName = "New South Wales"
         String regionType = "states"
-        String regionFid = "cl22"
+        String regionFid = "cl10925"
         String regionPid = "1"
         String from = "1900"
         String to = "1999"
@@ -59,32 +59,32 @@ class MetadataServiceSpec extends Specification {
         // Retrieving all species
         String url = metadataService.buildBiocacheSearchOccurrencesWsUrl(regionFid, regionType, regionName, regionPid, null, null)
         then:
-        URLDecoder.decode(url, 'UTF-8') == "https://biocache.ala.org.au/ws/occurrences/search?facets=names_and_lsid&fsort=taxon_name&pageSize=0&flimit=50&foffset=0&q=cl22:\"New South Wales\"&fq=rank:(species OR subspecies)&fq=-occurrence_status_s:absent&fq=geospatial_kosher:true&fq=occurrence_year:*"
+        URLDecoder.decode(url, 'UTF-8') == "https://biocache-ws.ala.org.au/ws/occurrences/search?facets=names_and_lsid&fsort=taxon_name&pageSize=0&flimit=50&foffset=0&q=cl10925:\"New South Wales\"&fq=rank:(species OR subspecies)&fq=-occurrence_status_s:absent&fq=geospatial_kosher:true&fq=occurrence_year:*"
 
         when:
         // Retrieving all species second page
         url = metadataService.buildBiocacheSearchOccurrencesWsUrl(regionFid, regionType, regionName, regionPid, null, null, null, null, "1")
         then:
-        URLDecoder.decode(url, 'UTF-8') == "https://biocache.ala.org.au/ws/occurrences/search?facets=names_and_lsid&fsort=taxon_name&pageSize=0&flimit=50&foffset=50&q=cl22:\"New South Wales\"&fq=rank:(species OR subspecies)&fq=-occurrence_status_s:absent&fq=geospatial_kosher:true&fq=occurrence_year:*"
+        URLDecoder.decode(url, 'UTF-8') == "https://biocache-ws.ala.org.au/ws/occurrences/search?facets=names_and_lsid&fsort=taxon_name&pageSize=0&flimit=50&foffset=50&q=cl10925:\"New South Wales\"&fq=rank:(species OR subspecies)&fq=-occurrence_status_s:absent&fq=geospatial_kosher:true&fq=occurrence_year:*"
 
         when:
         // Retrieving all species within a timeframe
         url = metadataService.buildBiocacheSearchOccurrencesWsUrl(regionFid, regionType, regionName, regionPid, null, null, from, to)
         then:
-        URLDecoder.decode(url, 'UTF-8') == "https://biocache.ala.org.au/ws/occurrences/search?facets=names_and_lsid&fsort=taxon_name&pageSize=0&flimit=50&foffset=0&q=cl22:\"New South Wales\"&fq=occurrence_year:[1900-01-01T00:00:00Z TO 1999-12-31T23:59:59Z]&fq=rank:(species OR subspecies)&fq=-occurrence_status_s:absent&fq=geospatial_kosher:true&fq=occurrence_year:*"
+        URLDecoder.decode(url, 'UTF-8') == "https://biocache-ws.ala.org.au/ws/occurrences/search?facets=names_and_lsid&fsort=taxon_name&pageSize=0&flimit=50&foffset=0&q=cl10925:\"New South Wales\"&fq=occurrence_year:[1900-01-01T00:00:00Z TO 1999-12-31T23:59:59Z]&fq=rank:(species OR subspecies)&fq=-occurrence_status_s:absent&fq=geospatial_kosher:true&fq=occurrence_year:*"
 
         when:
         // Retrieving all species for a given group
         url = metadataService.buildBiocacheSearchOccurrencesWsUrl(regionFid, regionType, regionName, regionPid, groupName, null, null, null, '0', false, 'species_group:\"Mammals\"')
         then:
-        URLDecoder.decode(url, 'UTF-8') == "https://biocache.ala.org.au/ws/occurrences/search?facets=names_and_lsid&fsort=taxon_name&pageSize=0&flimit=50&foffset=0&q=cl22:\"New South Wales\"&fq=species_group:\"Mammals\"&fq=rank:(species OR subspecies)&fq=-occurrence_status_s:absent&fq=geospatial_kosher:true&fq=occurrence_year:*"
+        URLDecoder.decode(url, 'UTF-8') == "https://biocache-ws.ala.org.au/ws/occurrences/search?facets=names_and_lsid&fsort=taxon_name&pageSize=0&flimit=50&foffset=0&q=cl10925:\"New South Wales\"&fq=species_group:\"Mammals\"&fq=rank:(species OR subspecies)&fq=-occurrence_status_s:absent&fq=geospatial_kosher:true&fq=occurrence_year:*"
     }
 
     void "test species retrieval"() {
         given:
-        String regionName = "New South Wales"
+        String regionName = "NEW SOUTH WALES"
         String regionType = "states"
-        String regionFid = "cl22"
+        String regionFid = "cl10925"
         String regionPid = "1"
         String from = "1900"
         String to = "2014"
@@ -119,7 +119,7 @@ class MetadataServiceSpec extends Specification {
         given:
         String regionName = "New South Wales"
         String regionType = "states"
-        String regionFid = "cl22"
+        String regionFid = "cl10925"
         String regionPid = "1"
         String from = "1912"
         String to = "2015"
@@ -129,15 +129,15 @@ class MetadataServiceSpec extends Specification {
         String url = metadataService.buildSpeciesRecordListUrl(guid, regionFid, regionType, regionName, regionPid, null, null, from, to, false, null)
 
         then:
-        url == "https://biocache.ala.org.au/occurrences/search?q=cl22:\"New South Wales\"&fq=occurrence_year:[1912-01-01T00:00:00Z TO 2015-12-31T23:59:59Z]&fq=rank:(species OR subspecies)&fq=-occurrence_status_s:absent&fq=geospatial_kosher:true&fq=occurrence_year:*&fq=lsid:\"urn:lsid:biodiversity.org.au:afd.taxon:4163e0ea-afaf-456c-8926-7ec37e79d380\""
+          url == "https://biocache.ala.org.au/occurrences/search?q=cl10925%3A%22New+South+Wales%22&fq=occurrence_year%3A%5B1912-01-01T00%3A00%3A00Z+TO+2015-12-31T23%3A59%3A59Z%5D&fq=rank%3A%28species+OR+subspecies%29&fq=-occurrence_status_s%3Aabsent&fq=geospatial_kosher%3Atrue&fq=occurrence_year%3A*&fq=lsid%3A%22urn%3Alsid%3Abiodiversity.org.au%3Aafd.taxon%3A4163e0ea-afaf-456c-8926-7ec37e79d380%22"
     }
 
 
     void "test getSubgroupsWithRecords"() {
         given:
-        String regionName = "New South Wales"
+        String regionName = "NEW SOUTH WALES"
         String regionType = "states"
-        String regionFid = "cl22"
+        String regionFid = "cl10925"
         String regionPid = "1"
 
         when:
